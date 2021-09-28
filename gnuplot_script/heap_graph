@@ -1,0 +1,11 @@
+set title "Heap Usage"
+set xlabel "Samples"
+set ylabel "Heap Used (MB)"
+set term png size 1920,1080
+set output output_file
+set style line 1 \
+    linecolor rgb '#0060ad' \
+    linetype 1 linewidth 2 \
+    pointtype 7 pointsize 0.2
+plot filename using 0:2 with linespoints linestyle 1
+
