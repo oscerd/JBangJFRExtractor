@@ -55,7 +55,7 @@ class JFRExtractorCli implements Callable<Integer> {
     }
 
     @Override
-    public Integer call() throws Exception { // your business logic goes here...
+    public Integer call() throws Exception { 
         Path file = Paths.get(jfrFile);
 
         if (kind == Kind.heap) {
