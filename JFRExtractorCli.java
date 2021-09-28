@@ -35,7 +35,7 @@ class JFRExtractorCli implements Callable<Integer> {
 
     @CommandLine.Option(
             names = {"-i", "--input"},
-            description = "The number JFR File name",
+            description = "The JFR File name",
             required = true)
     private String jfrFile;
 
