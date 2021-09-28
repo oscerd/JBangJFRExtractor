@@ -58,8 +58,15 @@ class JFRExtractorCli implements Callable<Integer> {
     public Integer call() throws Exception {
         Path file = Paths.get(jfrFile);
 
-        if (kind == Kind.heap) {
-            heapReport(file);
+        switch (kind) {
+            case heap:
+                heapReport(file);
+                break;
+            case cpu:
+                cpuReport(file);
+                break;
+            default:
+                break;
         }
         return 0;
     }
@@ -72,6 +79,17 @@ class JFRExtractorCli implements Callable<Integer> {
             writeHeapReportFile(file, bw);
         } else {
             prettyPrintHeapTable(file);
+        }
+    }
+
+    private void cpuReport(Path file) throws IOException {
+        if (outputFile != null) {
+            File fout = new File(outputFile);
+            FileOutputStream fos = new FileOutputStream(fout);
+            BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(fos));
+            writeCpuReportFile(file, bw);
+        } else {
+            prettyPrintCpuTable(file);
         }
     }
 
@@ -114,6 +132,52 @@ class JFRExtractorCli implements Callable<Integer> {
                     int gcId = e.getValue("gcId");
                     long startTime = e.getValue("startTime");
                     table.addRow(String.valueOf(i),String.valueOf(((float) heapUsed) / ((float) 1048576)),whenDate,String.valueOf(gcId),String.valueOf(startTime));
+                    i++;
+                }
+            }
+        }
+        System.out.println(table);
+    }
+
+    private void writeCpuReportFile(Path file, BufferedWriter bw) throws IOException {
+        bw.write("# Sample StartTime User System Total");
+        bw.newLine();
+
+
+        try (var recordingFile = new RecordingFile(file)) {
+
+            int i = 0;
+            while (recordingFile.hasMoreEvents()) {
+                var e = recordingFile.readEvent();
+                String eventName = e.getEventType().getName();
+                if (eventName.equalsIgnoreCase("jdk.CPULoad")) {
+                    long startTime = e.getValue("startTime");
+                    float user = e.getValue("jvmUser");
+                    float system = e.getValue("jvmSystem");
+                    float total = e.getValue("machineTotal");
+                    bw.write(i + " " + String.valueOf(startTime) + " " + String.valueOf(user) + " " + String.valueOf(system) + " " + String.valueOf(total));
+                    bw.newLine();
+                    i++;
+                }
+            }
+        }
+        bw.close();
+    }
+
+    private void prettyPrintCpuTable(Path file) throws IOException {
+        PrettyTable table = new PrettyTable("Sample", "StartTime", "User" , "System", "Total");
+        try (var recordingFile = new RecordingFile(file)) {
+
+            int i = 0;
+            while (recordingFile.hasMoreEvents()) {
+                var e = recordingFile.readEvent();
+                String eventName = e.getEventType().getName();
+                if (eventName.equalsIgnoreCase("jdk.CPULoad")) {
+                    long startTime = e.getValue("startTime");
+                    float user = e.getValue("jvmUser");
+                    float system = e.getValue("jvmSystem");
+                    float total = e.getValue("machineTotal");
+                    table.addRow(String.valueOf(i),String.valueOf(startTime), String.valueOf(user),String.valueOf(system),String.valueOf(total));
                     i++;
                 }
             }
