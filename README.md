@@ -12,3 +12,11 @@ JFRExtractorCli made with jbang
                           The raw data file output name
   -V, --version           Print version information and exit.
 ```
+
+## Plotting with GNUPlot
+
+Suppose you created an output file named for example cpu.jfr, you can plot a png through that with the following command:
+
+```shell script
+gnuplot -e "filename='cpu.jfr';output_file='file.png'" gnuplot_script/cpu_graph 
+```
