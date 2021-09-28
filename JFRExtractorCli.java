@@ -1,11 +1,13 @@
 ///usr/bin/env jbang "$0" "$@" ; exit $?
+//REPOS mavencentral,jitpack
 //DEPS info.picocli:picocli:4.5.0
+//DEPS com.github.skebir:prettytable:v1.0
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-
+import java.util.List;
 import jdk.jfr.Event;
 import jdk.jfr.EventType;
 import jdk.jfr.Label;
@@ -18,6 +20,8 @@ import java.io.OutputStreamWriter;
 import java.io.BufferedWriter;
 import java.io.FileOutputStream;
 import java.io.File;
+
+import org.sk.PrettyTable;
 
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
@@ -37,8 +41,7 @@ class JFRExtractorCli implements Callable<Integer> {
 
     @CommandLine.Option(
             names = {"-o", "--output"},
-            description = "The raw data file output name",
-            required = true)
+            description = "The raw data file output name")
     private String outputFile;
 
     enum Kind {heap, cpu}
@@ -62,32 +65,53 @@ class JFRExtractorCli implements Callable<Integer> {
     }
 
     private void heapReport(Path file) throws IOException {
-        File fout = new File(outputFile);
-        FileOutputStream fos = new FileOutputStream(fout);
+        if (outputFile != null) {
+            File fout = new File(outputFile);
+            FileOutputStream fos = new FileOutputStream(fout);
 
-        BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(fos));
+            BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(fos));
 
-        bw.write("# Sample Value When GcID StartTime");
-        bw.newLine();
+            bw.write("# Sample Value When GcID StartTime");
+            bw.newLine();
 
 
-        try (var recordingFile = new RecordingFile(file)) {
+            try (var recordingFile = new RecordingFile(file)) {
 
-            int i = 0;
-            while (recordingFile.hasMoreEvents()) {
-                var e = recordingFile.readEvent();
-                String eventName = e.getEventType().getName();
-                if (eventName.equalsIgnoreCase("jdk.GCHeapSummary")) {
-                    long heapUsed = e.getValue("heapUsed");
-                    String whenDate = e.getValue("when");
-                    int gcId = e.getValue("gcId");
-                    long startTime = e.getValue("startTime");
-                    bw.write(i + " " + String.valueOf(((float) heapUsed) / ((float) 1048576)) + " " + whenDate + " " + gcId + " " + startTime);
-                    bw.newLine();
-                    i++;
+                int i = 0;
+                while (recordingFile.hasMoreEvents()) {
+                    var e = recordingFile.readEvent();
+                    String eventName = e.getEventType().getName();
+                    if (eventName.equalsIgnoreCase("jdk.GCHeapSummary")) {
+                        long heapUsed = e.getValue("heapUsed");
+                        String whenDate = e.getValue("when");
+                        int gcId = e.getValue("gcId");
+                        long startTime = e.getValue("startTime");
+                        bw.write(i + " " + String.valueOf(((float) heapUsed) / ((float) 1048576)) + " " + whenDate + " " + gcId + " " + startTime);
+                        bw.newLine();
+                        i++;
+                    }
                 }
             }
+            bw.close();
+        } else {
+            PrettyTable table = new PrettyTable("Sample", "Value", "When" , "GcID", "StartTime");
+            try (var recordingFile = new RecordingFile(file)) {
+
+                int i = 0;
+                while (recordingFile.hasMoreEvents()) {
+                    var e = recordingFile.readEvent();
+                    String eventName = e.getEventType().getName();
+                    if (eventName.equalsIgnoreCase("jdk.GCHeapSummary")) {
+                        long heapUsed = e.getValue("heapUsed");
+                        String whenDate = e.getValue("when");
+                        int gcId = e.getValue("gcId");
+                        long startTime = e.getValue("startTime");
+                        table.addRow(String.valueOf(i),String.valueOf(((float) heapUsed) / ((float) 1048576)),whenDate,String.valueOf(gcId),String.valueOf(startTime));
+                        i++;
+                    }
+                }
+            }
+            System.out.println(table);
         }
-        bw.close();
     }
 }
