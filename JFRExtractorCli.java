@@ -140,7 +140,7 @@ class JFRExtractorCli implements Callable<Integer> {
     }
 
     private void writeCpuReportFile(Path file, BufferedWriter bw) throws IOException {
-        bw.write("# Sample StartTime User System Total");
+        bw.write("# Sample Total User System StartTime");
         bw.newLine();
 
 
@@ -155,7 +155,7 @@ class JFRExtractorCli implements Callable<Integer> {
                     float user = e.getValue("jvmUser");
                     float system = e.getValue("jvmSystem");
                     float total = e.getValue("machineTotal");
-                    bw.write(i + " " + String.valueOf(startTime) + " " + String.valueOf(user) + " " + String.valueOf(system) + " " + String.valueOf(total));
+                    bw.write(i + " " + String.valueOf(total) + " " + String.valueOf(user) + " " + String.valueOf(system) + " " + String.valueOf(startTime));
                     bw.newLine();
                     i++;
                 }
@@ -165,7 +165,7 @@ class JFRExtractorCli implements Callable<Integer> {
     }
 
     private void prettyPrintCpuTable(Path file) throws IOException {
-        PrettyTable table = new PrettyTable("Sample", "StartTime", "User" , "System", "Total");
+        PrettyTable table = new PrettyTable("Sample", "Total", "User" , "System", "StartTime");
         try (var recordingFile = new RecordingFile(file)) {
 
             int i = 0;
@@ -177,7 +177,7 @@ class JFRExtractorCli implements Callable<Integer> {
                     float user = e.getValue("jvmUser");
                     float system = e.getValue("jvmSystem");
                     float total = e.getValue("machineTotal");
-                    table.addRow(String.valueOf(i),String.valueOf(startTime), String.valueOf(user),String.valueOf(system),String.valueOf(total));
+                    table.addRow(String.valueOf(i),String.valueOf(total), String.valueOf(user),String.valueOf(system),String.valueOf(startTime));
                     i++;
                 }
             }
