@@ -55,7 +55,7 @@ class JFRExtractorCli implements Callable<Integer> {
     }
 
     @Override
-    public Integer call() throws Exception { 
+    public Integer call() throws Exception {
         Path file = Paths.get(jfrFile);
 
         if (kind == Kind.heap) {
@@ -71,9 +71,7 @@ class JFRExtractorCli implements Callable<Integer> {
             BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(fos));
             writeHeapReportFile(file, bw);
         } else {
-            PrettyTable table = new PrettyTable("Sample", "Value", "When" , "GcID", "StartTime");
-            prettyPrintHeapTable(file, table);
-            System.out.println(table);
+            prettyPrintHeapTable(file);
         }
     }
 
@@ -102,7 +100,8 @@ class JFRExtractorCli implements Callable<Integer> {
         bw.close();
     }
 
-    private void prettyPrintHeapTable(Path file, PrettyTable table) throws IOException {
+    private void prettyPrintHeapTable(Path file) throws IOException {
+        PrettyTable table = new PrettyTable("Sample", "Value", "When" , "GcID", "StartTime");
         try (var recordingFile = new RecordingFile(file)) {
 
             int i = 0;
@@ -119,5 +118,6 @@ class JFRExtractorCli implements Callable<Integer> {
                 }
             }
         }
+        System.out.println(table);
     }
 }
