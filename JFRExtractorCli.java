@@ -200,6 +200,28 @@ class JFRExtractorCli implements Callable<Integer> {
         System.out.println(table);
     }
 
+    private void writeMemoryReportFile(Path file, BufferedWriter bw) throws IOException {
+        bw.write("# Sample Total");
+        bw.newLine();
+
+
+        try (var recordingFile = new RecordingFile(file)) {
+
+            int i = 0;
+            while (recordingFile.hasMoreEvents()) {
+                long total = 0;
+                var e = recordingFile.readEvent();
+                if (isObjectAllocationEvent(e)) {
+                    total = getAllocationSize(e);
+                    bw.write(i + " " + String.valueOf(total));
+                    bw.newLine();
+                    i++;
+                }
+            }
+        }
+        bw.close();
+    }
+
     private void prettyPrintMemoryTable(Path file) throws IOException {
         PrettyTable table = new PrettyTable("Sample", "Total");
         try (var recordingFile = new RecordingFile(file)) {
