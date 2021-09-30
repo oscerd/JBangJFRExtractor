@@ -14,6 +14,7 @@ import jdk.jfr.Label;
 import jdk.jfr.Name;
 import jdk.jfr.Recording;
 import jdk.jfr.consumer.EventStream;
+import jdk.jfr.consumer.RecordedEvent;
 import jdk.jfr.consumer.RecordingFile;
 
 import java.io.OutputStreamWriter;
@@ -44,7 +45,7 @@ class JFRExtractorCli implements Callable<Integer> {
             description = "The raw data file output name")
     private String outputFile;
 
-    enum Kind {heap, cpu}
+    enum Kind {heap, cpu, memory}
 
     @CommandLine.Option(names = {"-k", "--kind"}, description = "Enum values: ${COMPLETION-CANDIDATES}", required = true)
     Kind kind = null;
@@ -64,6 +65,9 @@ class JFRExtractorCli implements Callable<Integer> {
                 break;
             case cpu:
                 cpuReport(file);
+                break;
+            case memory:
+                memoryReport(file);
                 break;
             default:
                 break;
@@ -90,6 +94,17 @@ class JFRExtractorCli implements Callable<Integer> {
             writeCpuReportFile(file, bw);
         } else {
             prettyPrintCpuTable(file);
+        }
+    }
+
+    private void memoryReport(Path file) throws IOException {
+        if (outputFile != null) {
+            File fout = new File(outputFile);
+            FileOutputStream fos = new FileOutputStream(fout);
+            BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(fos));
+            writeMemoryReportFile(file, bw);
+        } else {
+            prettyPrintMemoryTable(file);
         }
     }
 
@@ -183,5 +198,36 @@ class JFRExtractorCli implements Callable<Integer> {
             }
         }
         System.out.println(table);
+    }
+
+    private void prettyPrintMemoryTable(Path file) throws IOException {
+        PrettyTable table = new PrettyTable("Sample", "Total");
+        try (var recordingFile = new RecordingFile(file)) {
+
+            int i = 0;
+            while (recordingFile.hasMoreEvents()) {
+                long total = 0;
+                var e = recordingFile.readEvent();
+                if (isObjectAllocationEvent(e)) {
+                total = getAllocationSize(e);
+                table.addRow(String.valueOf(i),String.valueOf(total));
+                i++;
+                }
+            }
+        }
+        System.out.println(table);
+    }
+
+    private boolean isObjectAllocationEvent(RecordedEvent re) {
+        String name = re.getEventType().getName();
+        return name.equals("jdk.ObjectAllocationInNewTLAB") ||
+                name.equals("jdk.ObjectAllocationOutsideTLAB");
+    }
+
+    private long getAllocationSize(RecordedEvent recordedEvent) {
+        return recordedEvent.getEventType().getName()
+                .equals("jdk.ObjectAllocationInNewTLAB") ?
+                recordedEvent.getLong("tlabSize") :
+                recordedEvent.getLong("allocationSize");
     }
 }
